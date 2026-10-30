@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Flap">
+  <meta name="theme-color" content="#1b1a19">
+  <link rel="manifest" href="manifest.webmanifest">
+  <title>Split-Flap Board</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body class="not-started">
+  <canvas id="scene"></canvas>
+  <div id="vignette"></div>
+
+  <div id="start">
+    <div class="start-card">
+      <div class="start-title">SPLIT&#8209;FLAP</div>
+      <p>Tap anywhere to start</p>
+      <small>Sound will play when the board changes</small>
+    </div>
+  </div>
+
+  <div id="toolbar">
+    <button class="tb" id="btn-next" title="Next message (Space)" aria-label="Next message">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5l9 7-9 7z"/><path d="M19 5v14"/></svg>
+    </button>
+    <button class="tb" id="btn-fullscreen" title="Fullscreen (F)" aria-label="Fullscreen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+    </button>
+    <button class="tb" id="btn-settings" title="Messages &amp; settings (S)" aria-label="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+    </button>
+  </div>
+
+  <aside id="panel" aria-hidden="true">
+    <header class="panel-head">
+      <h2>Board</h2>
+      <button class="icon-btn" id="btn-close" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </header>
+
+    <div class="panel-body">
+      <section>
+        <div class="section-head">
+          <h3>Messages</h3>
+          <button class="pill" id="btn-add">+ Add message</button>
+        </div>
+        <div id="messages"></div>
+        <p class="hint">
+          Text wraps automatically. Enter adds a line break.<br>
+          Color tiles: <code>{red}</code> <code>{orange}</code> <code>{yellow}</code> <code>{green}</code>
+          <code>{blue}</code> <code>{violet}</code> <code>{white}</code> (or <code>{r}</code>, <code>{o}</code>…)<br>
+          Live values: <code>{time}</code> <code>{date}</code><br>
+          Duration is how long a message stays after the board settles.
+        </p>
+      </section>
+
+      <section>
+        <h3>Display</h3>
+        <label class="row"><span>Loop messages</span><input type="checkbox" id="opt-loop"></label>
+        <label class="row"><span>Sound</span><input type="checkbox" id="opt-sound"></label>
+        <label class="row"><span>Volume</span><input type="range" id="opt-volume" min="0" max="1" step="0.01"></label>
+        <label class="row"><span>Flip speed</span><input type="range" id="opt-speed" min="0" max="100" step="1"></label>
+        <label class="row"><span>Alignment</span>
+          <select id="opt-align"><option value="center">Center</option><option value="left">Left</option></select>
+        </label>
+        <label class="row"><span>Finish</span>
+          <select id="opt-theme"><option value="black">Black</option><option value="white">White</option></select>
+        </label>
+        <label class="row"><span>Size</span>
+          <select id="opt-size"><option value="6x22">6 × 22</option><option value="3x15">3 × 15</option></select>
+        </label>
+      </section>
+    </div>
+
+    <footer class="panel-foot">Space next · F fullscreen · S settings · Esc close</footer>
+  </aside>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "name": "Split-Flap Board",
+  "short_name": "Flap",
+  "start_url": ".",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#1b1a19",
+  "theme_color": "#1b1a19"
+}
