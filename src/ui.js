@@ -110,6 +110,7 @@ export function initUI(api) {
   bind('#opt-align', 'align', ...value);
   bind('#opt-theme', 'theme', ...value);
   bind('#opt-size', 'size', ...value);
+  bind('#opt-wall', 'wall', ...value);
 
   // Panel
   const open = () => {

@@ -19,8 +19,8 @@ export const CHARS = [
 export const CHAR_INDEX = new Map(CHARS.map((c, i) => [c, i]));
 
 export const THEMES = {
-  black: { flap: '#141414', ink: '#f2f0e8', scuff: '255,255,255', frame: 0x0c0c0c, slot: 0x050505, wall: 0x8a7458 },
-  white: { flap: '#eceae4', ink: '#1c1c1c', scuff: '0,0,0', frame: 0xe6e4de, slot: 0xbdbab3, wall: 0x8a7458 },
+  black: { flap: '#141414', ink: '#f2f0e8', scuff: '255,255,255', frame: 0x0c0c0c, slot: 0x050505 },
+  white: { flap: '#eceae4', ink: '#1c1c1c', scuff: '0,0,0', frame: 0xe6e4de, slot: 0xbdbab3 },
 };
 
 // Atlas layout: each slot holds one full flap (top + bottom half) plus transparent padding

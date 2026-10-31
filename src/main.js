@@ -4,7 +4,7 @@ import { Board } from './board.js';
 import { layout, hasLiveTokens } from './layout.js';
 import { FlapAudio } from './audio.js';
 import { initUI } from './ui.js';
-import { createWoodTextures, WALL } from './wood.js';
+import { createWallTextures, WALL, WALLS } from './walls.js';
 import { createEnvironment } from './environment.js';
 
 const FONT = '"Barlow", "Helvetica Neue", Arial, sans-serif';
@@ -23,6 +23,7 @@ const DEFAULTS = {
   align: 'center',
   theme: 'black',
   size: '6x22',
+  wall: 'wood',
 };
 
 function loadState() {
@@ -71,8 +72,8 @@ key.shadow.normalBias = 0.01;
 key.shadow.radius = 4;
 scene.add(key, key.target);
 
-// Warm overhead wash: bright above the board, falling off toward the corners,
-// and grazing enough to bring out the wood grain and plank grooves.
+// Overhead gallery wash: bright above the board, falling off toward the corners,
+// and grazing enough to bring out the wall's texture. Its color follows the wall.
 const wash = new THREE.SpotLight(0xffe2c0, 300, 0, 0.8, 1, 2);
 wash.position.set(0, 21, 12);
 wash.target.position.set(0, 2, -1);
@@ -82,29 +83,40 @@ const fill = new THREE.DirectionalLight(0xdde6ff, 0.35);
 fill.position.set(14, -6, 18);
 scene.add(fill);
 
-// Glossy clear-coated maple. The baked textures span WALL.width; doubling the
-// plane's height (planks repeat seamlessly) covers tall portrait screens.
-const wood = createWoodTextures(renderer);
-for (const tex of Object.values(wood)) tex.repeat.set(1, 2);
-const wall = new THREE.Mesh(
-  new THREE.PlaneGeometry(WALL.width, WALL.height * 2),
-  new THREE.MeshPhysicalMaterial({
-    map: wood.map,
-    normalMap: wood.normalMap,
-    roughness: 0.55,
-    metalness: 0,
-    clearcoat: 1,
-    clearcoatRoughness: 1,
-    clearcoatRoughnessMap: wood.coatMap,
-    clearcoatNormalMap: wood.normalMap,
-    clearcoatNormalScale: new THREE.Vector2(0.8, 0.8),
-    envMap,
-    envMapIntensity: 1,
-  })
-);
+// The wall plane is twice the textures' height (they repeat in Y) to cover tall
+// portrait screens. Its finish is chosen in settings and baked on the GPU.
+const wall = new THREE.Mesh(new THREE.PlaneGeometry(WALL.width, WALL.height * 2), new THREE.MeshPhysicalMaterial());
 wall.position.z = -0.94;
 wall.receiveShadow = true;
 scene.add(wall);
+let wallTex = null;
+
+function buildWall() {
+  if (!WALLS[state.wall]) state.wall = 'wood';
+  const spec = WALLS[state.wall];
+  wallTex?.dispose();
+  wallTex = createWallTextures(renderer, state.wall);
+  for (const tex of [wallTex.map, wallTex.normalMap, wallTex.roughMap]) tex.repeat.set(1, 2);
+  const coat = spec.material.clearcoat
+    ? { clearcoatRoughnessMap: wallTex.roughMap, clearcoatNormalMap: wallTex.normalMap }
+    : {};
+  wall.material.dispose();
+  wall.material = new THREE.MeshPhysicalMaterial({
+    ...spec.material,
+    ...coat,
+    map: wallTex.map,
+    normalMap: wallTex.normalMap,
+    roughnessMap: wallTex.roughMap,
+    metalness: 0,
+    envMap,
+    envMapIntensity: 1,
+  });
+  wash.color.set(spec.light);
+  scene.background = new THREE.Color(spec.background);
+  document.body.style.background = `#${scene.background.getHexString()}`;
+  renderer.shadowMap.needsUpdate = true;
+  dirty = true;
+}
 
 let atlas = null;
 let atlasTheme = null;
@@ -128,8 +140,6 @@ function buildBoard() {
   Object.assign(key.shadow.camera, { left: -board.width / 2 - 3, right: board.width / 2 + 3, top: board.height / 2 + 3, bottom: -board.height / 2 - 3 });
   key.shadow.camera.updateProjectionMatrix();
   renderer.shadowMap.needsUpdate = true;
-  scene.background = new THREE.Color(theme.wall);
-  document.body.style.background = `#${new THREE.Color(theme.wall).getHexString()}`;
   fit();
 }
 
@@ -278,6 +288,8 @@ const ui = initUI({
     else if (k === 'align') {
       ui.renderList();
       show(current, 300);
+    } else if (k === 'wall') {
+      buildWall();
     } else if (k === 'theme' || k === 'size') {
       buildBoard();
       ui.renderList();
@@ -331,5 +343,6 @@ function frame(now) {
 try {
   await Promise.race([document.fonts.load(`600 100px ${FONT}`), new Promise((r) => setTimeout(r, 2500))]);
 } catch {}
+buildWall();
 buildBoard();
 requestAnimationFrame(frame);

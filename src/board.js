@@ -237,8 +237,8 @@ export class Board {
     frame.receiveShadow = true;
     this.group.add(frame);
 
-    // Solari-style housing: a rail between every row, standing proud of the flaps
-    // so it shades their top edge, and thin dividers between columns.
+    // Solari-style housing: a rail between every row, standing proud of the flaps,
+    // and thin dividers between columns.
     this.housingMat = new THREE.MeshStandardMaterial({ color: theme.frame, roughness: 0.8, roughnessMap: rough, metalness: 0.25 });
     const railGeo = new RoundedBoxGeometry(innerW, 0.14, 0.32, 3, 0.04);
     const rails = new THREE.InstancedMesh(railGeo, this.housingMat, rows + 1);
@@ -251,8 +251,9 @@ export class Board {
     for (let c = 0; c <= cols; c++) {
       dividers.setMatrixAt(c, m4.makeTranslation((c - cols / 2) * SX, 0, 0.02));
     }
+    // They don't cast shadows onto the flaps: a shadow band across the top of every
+    // cell makes the characters look off-center.
     for (const m of [rails, dividers]) {
-      m.castShadow = true;
       m.receiveShadow = true;
       this.group.add(m);
     }
