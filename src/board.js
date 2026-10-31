@@ -9,6 +9,7 @@ const GAP = 0.026;
 const HH = (H - GAP) / 2;
 const SX = 1.14; // column pitch
 const SY = 1.56; // row pitch
+export const PITCH = { x: SX, y: SY };
 const N = CHARS.length;
 const BOUNCE_MS = 170;
 // The lower leaf hangs slightly forward of vertical, so the halves catch light differently.

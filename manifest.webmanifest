@@ -3,7 +3,7 @@
   "short_name": "Flap",
   "start_url": ".",
   "display": "fullscreen",
-  "orientation": "landscape",
+  "orientation": "any",
   "background_color": "#1b1a19",
   "theme_color": "#1b1a19"
 }

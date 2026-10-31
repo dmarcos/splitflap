@@ -299,7 +299,6 @@ vec4 trowel(vec2 p) {
   vec2 g = floor(p / CELL);
   float best = -1.0;
   vec4 r = vec4(0.0);
-  float edge = 0.0;
   for (int j = -2; j <= 2; j++) for (int i = -2; i <= 2; i++) {
     ivec2 c = ivec2(g) + ivec2(i, j);
     for (int k = 0; k < 2; k++) {
@@ -311,6 +310,7 @@ vec4 trowel(vec2 p) {
       vec2 d = p - ctr;
       float rad = length(d);
       float w = 0.7 + 1.0 * h1(c, s + 7);                     // half width of the trowel band
+      if (abs(rad - R) > w + 0.2) continue;                   // cheap reject before the trig
       float span = 0.35 + 0.5 * h1(c, s + 9);                 // half angle swept
       float da = abs(mod(atan(d.y, d.x) - dir + 3.14159265, 6.2831853) - 3.14159265);
       // Wobbly edges: the trowel never runs perfectly true.
@@ -320,16 +320,17 @@ vec4 trowel(vec2 p) {
       float inside = max(across, along);
       if (inside > 1.0) continue;
       float pri = h1(c, s + 13);
-      // Burn lines where the trowel's edge pressed, on whichever sweep is on top.
-      float e = exp(-pow((1.0 - across) * w / 0.035, 2.0)) * smoothstep(1.0, 0.7, along);
+      // A soft burnished margin where the trowel's edge pressed; only the
+      // topmost sweep shows it, since later passes smooth over earlier ones.
+      float e = exp(-pow((1.0 - across) * w / 0.12, 2.0)) * smoothstep(1.0, 0.6, along);
       if (pri > best) {
         best = pri;
-        r = vec4(h1(c, s + 15) - 0.5, h1(c, s + 17), e, 1.0);
+        // Sweeps feather out toward their ends, blending into what lies beneath.
+        float fade = smoothstep(1.0, 0.3, inside);
+        r = vec4((h1(c, s + 15) - 0.5) * fade + r.x * (1.0 - fade), h1(c, s + 17) * fade + r.y * (1.0 - fade), e * fade, 1.0);
       }
-      edge = max(edge, e * 0.6);
     }
   }
-  r.z = max(r.z, edge);
   return r;
 }
 
@@ -338,7 +339,7 @@ float pinholes(vec2 p) { return spots(p, 0.8, 851, 0.08, 0.01, 0.025); }
 float height(vec2 p) {
   vec4 t = trowel(p);
   float h = (gfbm(p * 0.1, 861, 4) - 0.5) * 0.01;            // the substrate is never quite flat
-  h += t.x * 0.0012 + t.z * 0.0012;                           // sweep layers and their edge ridges
+  h += t.x * 0.0012 + t.z * 0.0006;                           // sweep layers and their edge ridges
   h += (gfbm(p * 6.0, 863, 3) - 0.5) * 0.0008;                // fine filler texture
   h += (gnoise(p * 40.0, 865) - 0.5) * 0.0003;
   h -= pinholes(p) * 0.004;
@@ -350,9 +351,9 @@ vec3 albedo(vec2 p) {
   float g = 0.6;
   g *= 1.0 + (gfbm(p * 0.05, 871, 5) - 0.5) * 0.3;            // broad clouding
   g *= 1.0 + (gfbm(p * 0.35, 873, 4) - 0.5) * 0.12;
-  g *= 1.0 + t.x * 0.09;                                       // each sweep a slightly different tone
-  g *= 1.0 - t.z * 0.1;                                        // trowel burn lines
-  g *= 1.0 + (gnoise(p * 30.0, 875) - 0.5) * 0.03;
+  g *= 1.0 + t.x * 0.13;                                       // each sweep a slightly different tone
+  g *= 1.0 - t.z * 0.03;                                       // faint trowel burnish
+  g *= 1.0 + (gnoise(p * 30.0, 875) - 0.5) * 0.05 + (gnoise(p * 80.0, 876) - 0.5) * 0.03;
   g *= 1.0 - pinholes(p) * 0.3;
   vec3 c = vec3(g) * vec3(1.0, 0.975, 0.94);                  // warm greige
   return c * mix(vec3(1.0), vec3(0.98, 0.99, 1.02), gfbm(p * 0.04, 877, 3));

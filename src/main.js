@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { createAtlas, THEMES } from './atlas.js';
-import { Board } from './board.js';
+import { Board, PITCH } from './board.js';
 import { layout, hasLiveTokens } from './layout.js';
 import { FlapAudio } from './audio.js';
 import { initUI } from './ui.js';
@@ -22,7 +22,7 @@ const DEFAULTS = {
   speed: 66,
   align: 'center',
   theme: 'black',
-  size: '6x22',
+  size: 'auto',
   wall: 'wood',
 };
 
@@ -123,7 +123,17 @@ let atlasTheme = null;
 let board = null;
 let dirty = true;
 
-const dims = () => state.size.split('x').map(Number);
+// "auto" fills the screen: the classic 6 x 22 in landscape; in portrait, a taller,
+// narrower grid sized so the board covers most of the screen's height.
+function autoDims() {
+  const aspect = window.innerWidth / window.innerHeight;
+  if (aspect >= 1.2) return [6, 22];
+  const cols = aspect < 0.62 ? 10 : 13;
+  const width = cols * PITCH.x + 1.62;
+  const rows = Math.floor(((width / aspect) * 0.82 - 1.62) / PITCH.y);
+  return [Math.max(4, Math.min(16, rows)), cols];
+}
+const dims = () => (state.size === 'auto' ? autoDims() : state.size.split('x').map(Number));
 
 function buildBoard() {
   const theme = THEMES[state.theme] ?? THEMES.black;
@@ -156,8 +166,22 @@ function fit() {
   camera.updateProjectionMatrix();
   dirty = true;
 }
-window.addEventListener('resize', fit);
-window.visualViewport?.addEventListener('resize', fit);
+// On rotation (or any resize) an auto-sized board is rebuilt to the new grid.
+let resizeTimer;
+function onResize() {
+  fit();
+  if (state.size !== 'auto') return;
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    const [rows, cols] = dims();
+    if (rows === board.rows && cols === board.cols) return;
+    buildBoard();
+    ui.renderList();
+    if (started) show(current, 300);
+  }, 250);
+}
+window.addEventListener('resize', onResize);
+window.visualViewport?.addEventListener('resize', onResize);
 
 // ---------- Audio ----------
 const audio = new FlapAudio();
