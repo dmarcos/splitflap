@@ -9,6 +9,8 @@ export const COLOR_TILES = {
   B: '#1672c2',
   V: '#6b2f8b',
   W: '#f3f1ea',
+  N: '#6b6a24', // olive brown
+  T: '#e3a443', // tan
 };
 
 export const CHARS = [

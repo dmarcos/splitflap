@@ -8,6 +8,8 @@ const COLOR_NAMES = {
   b: 'B', blue: 'B',
   v: 'V', violet: 'V', purple: 'V',
   w: 'W', white: 'W',
+  n: 'N', brown: 'N',
+  t: 'T', tan: 'T',
 };
 
 const SUBSTITUTES = {
@@ -84,7 +86,12 @@ function wrap(cells, cols) {
 export function layout(text, rows, cols, align = 'center') {
   const lines = expandLive(text)
     .split(/\r?\n/)
-    .flatMap((p) => wrap(tokenize(p), cols));
+    .flatMap((p) => {
+      // Lines that fit keep their spacing exactly, so pictures drawn with color
+      // tiles and spaces stay intact; longer lines are word-wrapped.
+      const cells = tokenize(p);
+      return cells.length <= cols ? [cells] : wrap(cells, cols);
+    });
   while (lines.length > 1 && !lines[lines.length - 1].length) lines.pop();
   const visible = lines.slice(0, rows);
 

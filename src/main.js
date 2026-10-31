@@ -10,11 +10,65 @@ import { createEnvironment } from './environment.js';
 const FONT = '"Barlow", "Helvetica Neue", Arial, sans-serif';
 const STORAGE_KEY = 'splitflap.v1';
 
+// A space-invader-style alien drawn in green tiles, 11 x 8: it fills the 8-row
+// landscape board, and the portrait grids are at least 11 wide.
+const ALIEN = {
+  text: [
+    '  {g}     {g}  ',
+    '   {g}   {g}   ',
+    '  {g}{g}{g}{g}{g}{g}{g}  ',
+    ' {g}{g} {g}{g}{g} {g}{g} ',
+    '{g}{g}{g}{g}{g}{g}{g}{g}{g}{g}{g}',
+    '{g} {g}{g}{g}{g}{g}{g}{g} {g}',
+    '{g} {g}     {g} {g}',
+    '   {g}{g} {g}{g}   ',
+  ].join('\n'),
+  duration: 12,
+};
+// Mario's head in red, brown and tan tiles, 11 x 8 like the alien.
+const MARIO = {
+  text: [
+    '  {r}{r}{r}{r}{r}    ',
+    ' {r}{r}{r}{r}{r}{r}{r}{r}{r} ',
+    ' {n}{n}{n}{t}{t}{n}{t}   ',
+    '{n}{t}{n}{t}{t}{t}{n}{t}{t}{t} ',
+    '{n}{t}{n}{n}{t}{t}{t}{n}{t}{t}{t}',
+    '{n}{n}{t}{t}{t}{t}{n}{n}{n}{n} ',
+    '  {t}{t}{t}{t}{t}{t}{t}  ',
+    ' {n}{n}{r}{n}{n}{n}    ',
+  ].join('\n'),
+  duration: 12,
+};
+const KAY = 'THE BEST WAY TO PREDICT THE FUTURE IS TO INVENT IT\n\n- ALAN KAY';
+const SKEUO = { text: 'SKEUOMORPHISM\nIS COOL\n- @DMARCOS', duration: 12 };
+// Version 8 shipped it as two lines with a gap; version 9 stacks it in three.
+const SKEUO_V8 = 'SKEUOMORPHISM IS COOL\n\n- @DMARCOS';
+const CLARKE = {
+  text: 'ANY SUFFICIENTLY ADVANCED TECHNOLOGY IS INDISTINGUISHABLE FROM MAGIC\n\n- ARTHUR C. CLARKE',
+  duration: 15,
+};
+// Earlier defaults that version 6 replaces (Mario) or removes.
+const GOOD_MORNING = '{r}{o}{y}{g}{b}{v}\nGOOD MORNING\n{v}{b}{g}{y}{o}{r}';
+const TIME_DATE = '{time}\n{date}';
+// Version 6 shipped the Clarke quote in double quotes; version 7 drops them.
+const CLARKE_QUOTED = '"ANY SUFFICIENTLY ADVANCED TECHNOLOGY IS INDISTINGUISHABLE FROM MAGIC"\n\n- ARTHUR C. CLARKE';
+
+// Earlier first messages, replaced by the current alien when found in a saved list.
+const RETIRED = [
+  '    {r}    \n{w}{w}{w}{w}{w}{w}{w}{w}{w}\n{w}{b}{b}{w}{w}{w}{b}{b}{w}\n{w}{w}{w}{w}{w}{w}{w}{w}{w}\n{w}{w}{r}{r}{r}{r}{r}{w}{w}\nHELLO WORLD!',
+  ' {g}     {g} \n {g}{g}{g}{g}{g}{g}{g} \n{g}{g} {g}{g}{g} {g}{g}\n{g} {g}   {g} {g}\nGREETINGS FELLOW HUMANS!',
+  ' {g}     {g} \n  {g}   {g}  \n {g}{g}{g}{g}{g}{g}{g} \n{g}{g} {g}{g}{g} {g}{g}\n{g}{g}{g}{g}{g}{g}{g}{g}{g}\n{g} {g}   {g} {g}\nGREETINGS FELLOW HUMANS!',
+];
+
+const VERSION = 9;
 const DEFAULTS = {
+  version: VERSION,
   messages: [
-    { text: '{r}{o}{y}{g}{b}{v}\nGOOD MORNING\n{v}{b}{g}{y}{o}{r}', duration: 12 },
-    { text: 'THE BEST WAY TO PREDICT THE FUTURE IS TO INVENT IT\n\n- ALAN KAY', duration: 15 },
-    { text: '{time}\n{date}', duration: 12 },
+    ALIEN,
+    MARIO,
+    { text: KAY, duration: 15 },
+    SKEUO,
+    CLARKE,
   ],
   loop: true,
   sound: true,
@@ -29,7 +83,41 @@ const DEFAULTS = {
 function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (saved && typeof saved === 'object') return { ...structuredClone(DEFAULTS), ...saved };
+    if (saved && typeof saved === 'object') {
+      const state = { ...structuredClone(DEFAULTS), ...saved };
+      // Older saves: swap an earlier first message for the alien, or put the alien
+      // first if the list predates them. The old 6 x 22 default becomes auto.
+      const v = saved.version ?? 1;
+      if (v < VERSION && Array.isArray(saved.messages)) {
+        const i = state.messages.findIndex((m) => RETIRED.includes(m.text));
+        if (i >= 0) state.messages[i] = structuredClone(ALIEN);
+        else if (v < 2) state.messages.unshift(structuredClone(ALIEN));
+      }
+      if (v < 4 && saved.size === '6x22') state.size = 'auto';
+      // Version 6: Mario takes Good Morning's place, the clock goes, Clarke joins.
+      if (v < 6 && Array.isArray(saved.messages)) {
+        const m = state.messages;
+        const gm = m.findIndex((x) => x.text === GOOD_MORNING);
+        if (gm >= 0) m[gm] = structuredClone(MARIO);
+        else if (!m.some((x) => x.text === MARIO.text)) m.splice(1, 0, structuredClone(MARIO));
+        const td = m.findIndex((x) => x.text === TIME_DATE);
+        if (td >= 0) m.splice(td, 1);
+        if (!m.some((x) => x.text === CLARKE.text)) m.push(structuredClone(CLARKE));
+      }
+      if (v < 7 && Array.isArray(saved.messages)) {
+        for (const m of state.messages) if (m.text === CLARKE_QUOTED) m.text = CLARKE.text;
+      }
+      // Version 8: the skeuomorphism message follows the Alan Kay quote.
+      if (v < 9 && Array.isArray(saved.messages)) {
+        for (const m of state.messages) if (m.text === SKEUO_V8) m.text = SKEUO.text;
+      }
+      if (v < 8 && Array.isArray(saved.messages) && !state.messages.some((x) => x.text === SKEUO.text)) {
+        const k = state.messages.findIndex((x) => x.text === KAY);
+        state.messages.splice(k >= 0 ? k + 1 : state.messages.length, 0, structuredClone(SKEUO));
+      }
+      state.version = VERSION;
+      return state;
+    }
   } catch {}
   return structuredClone(DEFAULTS);
 }
@@ -42,6 +130,7 @@ function save() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
   }, 300);
 }
+save(); // persist any migration from loadState
 
 // ---------- Renderer & scene ----------
 const canvas = document.getElementById('scene');
@@ -123,12 +212,17 @@ let atlasTheme = null;
 let board = null;
 let dirty = true;
 
-// "auto" fills the screen: the classic 6 x 22 in landscape; in portrait, a taller,
-// narrower grid sized so the board covers most of the screen's height.
+// "auto" fills the screen: 22 columns and up to 8 rows in landscape; in portrait,
+// a taller, narrower grid sized so the board covers most of the screen's height.
 function autoDims() {
   const aspect = window.innerWidth / window.innerHeight;
-  if (aspect >= 1.2) return [6, 22];
-  const cols = aspect < 0.62 ? 10 : 13;
+  if (aspect >= 1.2) {
+    // 22 columns, and as many rows (6 to 8) as fit without shrinking the board.
+    const width = 22 * PITCH.x + 1.62;
+    const rows = Math.floor((width / aspect / 1.06 - 1.62) / PITCH.y);
+    return [Math.max(6, Math.min(8, rows)), 22];
+  }
+  const cols = aspect < 0.62 ? 11 : 13;
   const width = cols * PITCH.x + 1.62;
   const rows = Math.floor(((width / aspect) * 0.82 - 1.62) / PITCH.y);
   return [Math.max(4, Math.min(16, rows)), cols];
