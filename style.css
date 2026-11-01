@@ -64,7 +64,7 @@ body.idle { cursor: none; }
   margin-right: -0.3em;
 }
 .start-card p { margin: 14px 0 6px; font-size: 17px; }
-.start-card small { color: var(--muted); }
+.start-card small { display: block; max-width: 100%; margin: 18px auto 0; padding: 0 16px; color: var(--muted); line-height: 1.5; }
 
 /* Toolbar */
 #toolbar {
